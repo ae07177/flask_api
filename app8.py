@@ -1,7 +1,6 @@
 #!/usr/bin/python
-from flask import Flask, request, redirect, render_template, redirect, url_for
+from flask import Flask, request, redirect, render_template
 from flask_mysqldb import MySQL
-from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, user_manager
 app = Flask(__name__)
 
 ## Configure DB
@@ -17,30 +16,51 @@ def index():
         return render_template('methods.html')
 
 
-@app.route('/update', methods=['GET', 'POST'])
-def update():
-	return redirect(url_for('Authenticate'))
-        if request.method == 'POST':
-                userDetails = request.form
-                serial = userDetails['serial']
-                name = userDetails['name']
-                email = userDetails['email']
-#		return redirect(url_for('Authenticate'))
-                cur = mysql.connection.cursor()
-                cur.execute("INSERT INTO users(serial,name, email) VALUES(%s,%s, %s)",(int(serial),name, email))
-                mysql.connection.commit()
-                cur.close()
-#               return 'SUCCESS'
-                return redirect('/users')
-        return render_template('index.html')
-
-@app.route('/users')
-def users():
+@app.route('/update/<serial1>/<name1>', methods=['GET', 'POST'])
+def update(serial1,name1):
         cur = mysql.connection.cursor()
-        resultValue = cur.execute("SELECT * from users")
-        if resultValue > 0:
-                userDetails = cur.fetchall()
-                return render_template('users.html', userDetails=userDetails)
+	cur.execute("SELECT * from users where serial ='" + serial1 + "' and name ='" + name1 + "'")
+	data = cur.fetchone()
+	if data is None:
+		return "Authentication Failure"
+	else:
+        	if request.method == 'POST':
+                	userDetails = request.form
+                	serial = userDetails['serial']
+                	name = userDetails['name']
+                	email = userDetails['email']
+                	cur.execute("INSERT INTO users(serial,name, email) VALUES(%s,%s, %s)",(int(serial),name, email))
+                	mysql.connection.commit()
+	                cur.close()
+#	                return redirect('/users/<serial1>/<name1>', serial1=serial1, name1=name1)
+			url = "/users/" + serial1 + "/" + name1
+	                return redirect(url)
+        	return render_template('index.html')
+#                cur = mysql.connection.cursor()
+#		cur.execute("SELECT * from users where serial ='" + serial1 + "' and name ='" + name1 + "'")
+#		data = cur.fetchone()
+#		if data is None:
+#			return "Authentication Failure"
+#		else:	
+#                	cur.execute("INSERT INTO users(serial,name, email) VALUES(%s,%s, %s)",(int(serial),name, email))
+#                	mysql.connection.commit()
+#                cur.close()
+#                return redirect('/users')
+#        return render_template('index.html')
+
+@app.route('/users/<serial1>/<name1>')
+def users(serial1,name1):
+        cur = mysql.connection.cursor()
+	cur.execute("SELECT * from users where serial ='" + serial1 + "' and name ='" + name1 + "'")
+	data = cur.fetchone()
+	if data is None:
+		return "Authentication Failure"
+	else:
+        	resultValue = cur.execute("SELECT * from users")
+        	if resultValue > 0:
+                	userDetails = cur.fetchall()
+                	return render_template('users.html', userDetails=userDetails)
+	cur.close()
 
 @app.route('/Authenticate', methods=['GET','POST'])
 def Authenticate():
